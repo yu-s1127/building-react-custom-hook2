@@ -1,26 +1,58 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React, { FC, useEffect, useState } from 'react';
+import NewTask from './components/NewTask/NewTask';
+import Task from './components/types/Task';
+import Tasks from './components/Tasks/Tasks';
 
-function App() {
+const App: FC = () => {
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [tasks, setTasks] = useState<Array<Task>>([]);
+
+  const fetchTasks = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(
+        'https://react-http-6b4a6.firebaseio.com/tasks.json'
+      );
+
+      if (!response.ok) {
+        throw new Error('Request failed!');
+      }
+
+      const data = await response.json();
+      const loadedTasks = [];
+
+      for (const taskKey of data) {
+        loadedTasks.push({ id: taskKey, text: data[taskKey].text });
+      }
+
+      setTasks(loadedTasks);
+    } catch (error) {
+      setError('Something went wrong!');
+    }
+  };
+
+  useEffect(() => {
+    fetchTasks();
+  }, []);
+
+  const taskAddHandler = (task: Task) => {
+    setTasks((prevTasks) => prevTasks.concat(task));
+  };
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <React.Fragment>
+      <NewTask onAddTask={taskAddHandler} />
+      <Tasks
+        items={tasks}
+        loading={isLoading}
+        error={error}
+        onFetch={fetchTasks}
+      />
+    </React.Fragment>
   );
-}
+};
 
 export default App;
